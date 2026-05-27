@@ -2,7 +2,6 @@ const canvas = document.getElementById('animationCanvas');
 const ctx = canvas.getContext('2d');
 
 let particlesArray = [];
-const shapes = ['heart', 'star', 'circle'];
 
 function resizeCanvas() {
     canvas.width = window.innerWidth;
@@ -11,83 +10,88 @@ function resizeCanvas() {
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
-class Particle {
+class Star {
     constructor(x, y) {
         this.x = x;
         this.y = y;
-        this.size = Math.random() * 12 + 6; 
-        this.speedX = Math.random() * 4 - 2; 
-        this.speedY = Math.random() * -4 - 1; // Monte doucement
-        this.hue = Math.random() * 360; 
-        this.shape = shapes[Math.floor(Math.random() * shapes.length)];
+        // Taille réduite pour plus d'élégance
+        this.size = Math.random() * 8 + 4; 
+        this.speedX = Math.random() * 2 - 1; // Mouvement latéral doux
+        this.speedY = Math.random() * -3 - 1; // Monte doucement
+        this.gravity = -0.01; // Légère force ascensionnelle
+        
+        // Teintes de BLEU uniquement (Cyan, Électrique, Profond)
+        this.hue = Math.random() * 50 + 190; 
+        // Luminosité variable pour un effet scintillant
+        this.brightness = Math.random() * 20 + 60; 
+        
+        // Durée de vie plus longue
+        this.life = 1; 
+        this.decay = Math.random() * 0.005 + 0.003; 
     }
     
     update() {
-        // Ajout d'une brise légère vers la droite (Vent)
-        this.speedX += 0.03; 
-        
-        // Friction : ralentit légèrement le mouvement pour plus de douceur
-        this.speedX *= 0.98;
-        this.speedY *= 0.98;
-        
+        this.speedY += this.gravity; 
         this.x += this.speedX;
         this.y += this.speedY;
         
-        this.hue += 1; 
-        if (this.size > 0.4) this.size -= 0.05; // Dure encore plus longtemps
+        // Brise légère vers la droite
+        this.x += 0.2; 
+        
+        // Scintillement (la luminosité change légèrement)
+        this.brightness += (Math.random() * 10 - 5);
+        if (this.brightness > 80) this.brightness = 80;
+        if (this.brightness < 50) this.brightness = 50;
+        
+        this.life -= this.decay; 
+        if (this.size > 0.2) this.size -= 0.02; 
     }
     
     draw() {
-        ctx.fillStyle = `hsl(${this.hue}, 100%, 65%)`;
+        // L'étoile est BLEUE
+        ctx.fillStyle = `hsl(${this.hue}, 100%, ${this.brightness}%)`;
         ctx.beginPath();
         
-        if (this.shape === 'heart') {
-            let width = this.size;
-            let height = this.size;
-            ctx.moveTo(this.x, this.y - height / 4);
-            ctx.bezierCurveTo(this.x + width / 2, this.y - height, this.x + width, this.y - height / 4, this.x, this.y + height);
-            ctx.bezierCurveTo(this.x - width, this.y - height / 4, this.x - width / 2, this.y - height, this.x, this.y - height / 4);
-        } else if (this.shape === 'star') {
-            let spikes = 5;
-            let outerRadius = this.size;
-            let innerRadius = this.size / 2;
-            let rot = Math.PI / 2 * 3;
-            let cx = this.x;
-            let cy = this.y;
-            let step = Math.PI / spikes;
+        // Forme d'Étoile élégante à 5 branches
+        let spikes = 5;
+        let outerRadius = this.size;
+        let innerRadius = this.size / 2.5; // Plus effilée
+        let rot = Math.PI / 2 * 3;
+        let cx = this.x;
+        let cy = this.y;
+        let step = Math.PI / spikes;
 
-            ctx.moveTo(cx, cy - outerRadius);
-            for (let i = 0; i < spikes; i++) {
-                ctx.lineTo(cx + Math.cos(rot) * outerRadius, cy + Math.sin(rot) * outerRadius);
-                rot += step;
-                ctx.lineTo(cx + Math.cos(rot) * innerRadius, cy + Math.sin(rot) * innerRadius);
-                rot += step;
-            }
-            ctx.lineTo(cx, cy - outerRadius);
-        } else if (this.shape === 'circle') {
-            ctx.arc(this.x, this.y, this.size / 1.5, 0, Math.PI * 2);
+        ctx.moveTo(cx, cy - outerRadius);
+        for (let i = 0; i < spikes; i++) {
+            ctx.lineTo(cx + Math.cos(rot) * outerRadius, cy + Math.sin(rot) * outerRadius);
+            rot += step;
+            ctx.lineTo(cx + Math.cos(rot) * innerRadius, cy + Math.sin(rot) * innerRadius);
+            rot += step;
         }
-        
+        ctx.lineTo(cx, cy - outerRadius);
         ctx.closePath();
         ctx.fill();
     }
 }
 
-// Fonction magique pour lier les particules proches par un fil lumineux
-function connectParticles() {
+// Fonction pour lier les étoiles par des filaments DORÉS
+function connectStars() {
     for (let a = 0; a < particlesArray.length; a++) {
-        for (let b = a; b < particlesArray.length; b++) {
-            // Calcul de la distance géométrique entre la particule A et la particule B
+        for (let b = a + 1; b < particlesArray.length; b++) {
             let dx = particlesArray[a].x - particlesArray[b].x;
             let dy = particlesArray[a].y - particlesArray[b].y;
             let distance = Math.sqrt(dx * dx + dy * dy);
             
-            // Si la distance est inférieure à 80 pixels, on trace une ligne
-            if (distance < 80) {
-                // Opacité de la ligne proportionnelle à la distance (plus c'est proche, plus c'est brillant)
-                let opacity = 1 - (distance / 80);
-                ctx.strokeStyle = `rgba(255, 255, 255, ${opacity * 0.3})`;
-                ctx.lineWidth = 1;
+            // Distance de connexion réduite pour éviter la surcharge (toile d'araignée)
+            if (distance < 70) {
+                // Opacité basée sur la distance ET la vie des étoiles
+                let opacity = (1 - (distance / 70)) * Math.min(particlesArray[a].life, particlesArray[b].life);
+                
+                // --- Couleur DORÉE (GOLD) pour les filaments ---
+                // On utilise un dégradé or chaud (Hue 40, Saturation 100, Brightness 50)
+                ctx.strokeStyle = `rgba(212, 175, 55, ${opacity * 0.4})`; // Un or pur et doux
+                ctx.lineWidth = 0.8;
+                
                 ctx.beginPath();
                 ctx.moveTo(particlesArray[a].x, particlesArray[a].y);
                 ctx.lineTo(particlesArray[b].x, particlesArray[b].y);
@@ -98,34 +102,36 @@ function connectParticles() {
     }
 }
 
-function handleParticles(x, y) {
-    // On augmente un peu le nombre pour enrichir les connexions
-    for (let i = 0; i < 3; i++) {
-        particlesArray.push(new Particle(x, y));
+function handleStars(x, y) {
+    // Moins de particules pour un effet "constellation" épuré
+    if (Math.random() < 0.4) { // N'en crée pas à chaque mouvement
+        particlesArray.push(new Star(x, y));
     }
 }
 
 window.addEventListener('touchmove', function(e) {
     let touch = e.touches[0];
-    handleParticles(touch.clientX, touch.clientY);
+    handleStars(touch.clientX, touch.clientY);
 });
 
 window.addEventListener('mousemove', function(e) {
-    handleParticles(e.clientX, e.clientY);
+    handleStars(e.clientX, e.clientY);
 });
 
 function animate() {
-    ctx.fillStyle = 'rgba(11, 11, 26, 0.2)';
+    // Fond bleu nuit très profond, presque noir
+    ctx.fillStyle = 'rgba(8, 8, 18, 0.25)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
-    // On dessine d'abord les lignes de connexion
-    connectParticles();
+    // On dessine d'abord les connexions d'or
+    connectStars();
     
     for (let i = 0; i < particlesArray.length; i++) {
         particlesArray[i].update();
         particlesArray[i].draw();
         
-        if (particlesArray[i].size <= 0.4) {
+        // Supprimer si l'étoile meurt (life <= 0) ou devient invisible
+        if (particlesArray[i].life <= 0 || particlesArray[i].size <= 0.2) {
             particlesArray.splice(i, 1);
             i--;
         }
