@@ -3,7 +3,7 @@ const ctx = canvas.getContext('2d');
 
 let particlesArray = [];
 
-// Ajuster la taille de la zone de dessin à l'écran du téléphone
+// Ajuster la taille du canvas
 function resizeCanvas() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
@@ -11,57 +11,78 @@ function resizeCanvas() {
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
-// Modèle d'une particule (étincelle)
+// Modèle d'une particule en forme de cœur
 class Particle {
     constructor(x, y) {
         this.x = x;
         this.y = y;
-        this.size = Math.random() * 5 + 2; // Taille aléatoire
-        this.speedX = Math.random() * 3 - 1.5; // Vitesse horizontale (gauche/droite)
-        this.speedY = Math.random() * -3 - 1; // Vitesse verticale (monte vers le haut)
-        // Teintes aléatoires de rose, violet et bleu électrique
-        this.color = `hsl(${Math.random() * 60 + 280}, 100%, 60%)`;
+        // Taille initiale plus grande pour bien voir la forme
+        this.size = Math.random() * 15 + 10; 
+        this.speedX = Math.random() * 4 - 2; // Vitesse latérale
+        this.speedY = Math.random() * -5 - 2; // Propulsion vers le haut
+        this.gravity = 0.08; // Force qui fait retomber la particule
+        this.hue = Math.random() * 360; // Teinte de départ aléatoire (0-360)
     }
+    
     update() {
+        this.speedY += this.gravity; // La gravité s'applique
         this.x += this.speedX;
         this.y += this.speedY;
-        if (this.size > 0.2) this.size -= 0.1; // Réduction de taille progressive
+        
+        // Changement de couleur progressif (vitesse de rotation des teintes)
+        this.hue += 2; 
+        
+        // Réduction TRÈS lente de la taille pour qu'elle dure plus longtemps
+        if (this.size > 0.4) this.size -= 0.08; 
     }
+    
     draw() {
-        ctx.fillStyle = this.color;
+        ctx.fillStyle = `hsl(${this.hue}, 100%, 65%)`;
         ctx.beginPath();
-        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        
+        // Dessin mathématique d'un cœur basé sur la position (x, y) et la taille (size)
+        let width = this.size;
+        let height = this.size;
+        
+        ctx.moveTo(this.x, this.y - height / 4);
+        ctx.bezierCurveTo(this.x + width / 2, this.y - height, this.x + width, this.y - height / 4, this.x, this.y + height);
+        ctx.bezierCurveTo(this.x - width, this.y - height / 4, this.x - width / 2, this.y - height, this.x, this.y - height / 4);
+        
         ctx.fill();
     }
 }
 
-// Détecter le mouvement du doigt sur l'écran tactile
+// Fonction pour ajouter des particules
+function handleParticles(x, y) {
+    // On en crée 2 à chaque mouvement pour un effet dense mais fluide
+    for (let i = 0; i < 2; i++) {
+        particlesArray.push(new Particle(x, y));
+    }
+}
+
+// Événement Tactile (Téléphone)
 window.addEventListener('touchmove', function(e) {
-    for (let i = 0; i < 2; i++) {
-        let touch = e.touches[0];
-        particlesArray.push(new Particle(touch.clientX, touch.clientY));
-    }
+    let touch = e.touches[0];
+    handleParticles(touch.clientX, touch.clientY);
 });
 
-// Gérer aussi la souris si jamais on regarde sur un ordinateur
+// Événement Souris (PC)
 window.addEventListener('mousemove', function(e) {
-    for (let i = 0; i < 2; i++) {
-        particlesArray.push(new Particle(e.clientX, e.clientY));
-    }
+    handleParticles(e.clientX, e.clientY);
 });
 
-// Boucle d'animation principale
+// Boucle d'animation
 function animate() {
-    // Crée un effet de traînée lumineuse en ne vidant pas complètement l'écran
-    ctx.fillStyle = 'rgba(11, 11, 26, 0.2)';
+    // Effet d'ambiance sombre avec une traînée fluide
+    ctx.fillStyle = 'rgba(11, 11, 26, 0.15)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
     for (let i = 0; i < particlesArray.length; i++) {
         particlesArray[i].update();
         particlesArray[i].draw();
         
-        // Supprimer les particules devenues invisibles pour ne pas ralentir le téléphone
-        if (particlesArray[i].size <= 0.2) {
+        // Supprimer si le cœur devient trop petit
+        if (particlesArray[i].size <= 0.4) {
             particlesArray.splice(i, 1);
             i--;
         }
