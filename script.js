@@ -14,20 +14,20 @@ class Star {
     constructor(x, y) {
         this.x = x;
         this.y = y;
-        // Taille réduite pour plus d'élégance
         this.size = Math.random() * 8 + 4; 
-        this.speedX = Math.random() * 2 - 1; // Mouvement latéral doux
-        this.speedY = Math.random() * -3 - 1; // Monte doucement
-        this.gravity = -0.01; // Légère force ascensionnelle
         
-        // Teintes de BLEU uniquement (Cyan, Électrique, Profond)
+        // VITESSE CORRIGÉE : Mouvement horizontal lent et doux
+        this.speedX = Math.random() * 0.8 + 0.2; // Toujours un peu vers la droite
+        this.speedY = Math.random() * 1 - 0.5; // Très peu de mouvement vertical (flotte)
+        this.gravity = -0.005; // Force ascensionnelle quasi-nulle
+        
+        // Couleur BLEUE uniquement
         this.hue = Math.random() * 50 + 190; 
-        // Luminosité variable pour un effet scintillant
         this.brightness = Math.random() * 20 + 60; 
         
-        // Durée de vie plus longue
+        // DURÉE DE VIE ALLONGÉE considérablement
         this.life = 1; 
-        this.decay = Math.random() * 0.005 + 0.003; 
+        this.decay = Math.random() * 0.003 + 0.001; // Réduction très lente
     }
     
     update() {
@@ -35,27 +35,27 @@ class Star {
         this.x += this.speedX;
         this.y += this.speedY;
         
-        // Brise légère vers la droite
-        this.x += 0.2; 
+        // Brise légère globale vers la droite
+        this.x += 0.3; 
         
-        // Scintillement (la luminosité change légèrement)
-        this.brightness += (Math.random() * 10 - 5);
-        if (this.brightness > 80) this.brightness = 80;
-        if (this.brightness < 50) this.brightness = 50;
+        // Scintillement
+        this.brightness += (Math.random() * 6 - 3);
+        if (this.brightness > 85) this.brightness = 85;
+        if (this.brightness < 55) this.brightness = 55;
         
         this.life -= this.decay; 
-        if (this.size > 0.2) this.size -= 0.02; 
+        // La taille diminue aussi plus lentement
+        if (this.size > 0.2) this.size -= 0.01; 
     }
     
     draw() {
-        // L'étoile est BLEUE
-        ctx.fillStyle = `hsl(${this.hue}, 100%, ${this.brightness}%)`;
+        // Opacité de l'étoile liée à sa vie
+        ctx.fillStyle = `hsla(${this.hue}, 100%, ${this.brightness}%, ${this.life})`;
         ctx.beginPath();
         
-        // Forme d'Étoile élégante à 5 branches
         let spikes = 5;
         let outerRadius = this.size;
-        let innerRadius = this.size / 2.5; // Plus effilée
+        let innerRadius = this.size / 2.5;
         let rot = Math.PI / 2 * 3;
         let cx = this.x;
         let cy = this.y;
@@ -74,7 +74,7 @@ class Star {
     }
 }
 
-// Fonction pour lier les étoiles par des filaments DORÉS
+// Fonction pour lier les étoiles par des filaments DORÉS VISIBLES
 function connectStars() {
     for (let a = 0; a < particlesArray.length; a++) {
         for (let b = a + 1; b < particlesArray.length; b++) {
@@ -82,15 +82,14 @@ function connectStars() {
             let dy = particlesArray[a].y - particlesArray[b].y;
             let distance = Math.sqrt(dx * dx + dy * dy);
             
-            // Distance de connexion réduite pour éviter la surcharge (toile d'araignée)
-            if (distance < 70) {
-                // Opacité basée sur la distance ET la vie des étoiles
-                let opacity = (1 - (distance / 70)) * Math.min(particlesArray[a].life, particlesArray[b].life);
+            // DISTANCE DE CONNEXION AUGMENTÉE pour densifier la structure
+            if (distance < 90) {
+                // Opacité basée sur la distance ET la vie des étoiles (reste visible plus longtemps)
+                let opacity = (1 - (distance / 90)) * Math.min(particlesArray[a].life, particlesArray[b].life);
                 
-                // --- Couleur DORÉE (GOLD) pour les filaments ---
-                // On utilise un dégradé or chaud (Hue 40, Saturation 100, Brightness 50)
-                ctx.strokeStyle = `rgba(212, 175, 55, ${opacity * 0.4})`; // Un or pur et doux
-                ctx.lineWidth = 0.8;
+                // --- FILAMENTS DORÉS BIEN VISIBLES ---
+                ctx.strokeStyle = `rgba(212, 175, 55, ${opacity * 0.7})`; // Opacité augmentée (x0.7 au lieu de x0.4)
+                ctx.lineWidth = 1.2; // Épaisseur augmentée (1.2 au lieu de 0.8)
                 
                 ctx.beginPath();
                 ctx.moveTo(particlesArray[a].x, particlesArray[a].y);
@@ -103,8 +102,7 @@ function connectStars() {
 }
 
 function handleStars(x, y) {
-    // Moins de particules pour un effet "constellation" épuré
-    if (Math.random() < 0.4) { // N'en crée pas à chaque mouvement
+    if (Math.random() < 0.4) { 
         particlesArray.push(new Star(x, y));
     }
 }
@@ -119,18 +117,16 @@ window.addEventListener('mousemove', function(e) {
 });
 
 function animate() {
-    // Fond bleu nuit très profond, presque noir
-    ctx.fillStyle = 'rgba(8, 8, 18, 0.25)';
+    ctx.fillStyle = 'rgba(8, 8, 18, 0.2)'; // Effet de traînée plus doux
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
-    // On dessine d'abord les connexions d'or
+    // On dessine d'abord les connexions d'or (maintenant bien visibles)
     connectStars();
     
     for (let i = 0; i < particlesArray.length; i++) {
         particlesArray[i].update();
         particlesArray[i].draw();
         
-        // Supprimer si l'étoile meurt (life <= 0) ou devient invisible
         if (particlesArray[i].life <= 0 || particlesArray[i].size <= 0.2) {
             particlesArray.splice(i, 1);
             i--;
